@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>David Middleton’s voyage on the USS Alioth</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&family=Spectral:ital,wght@0,500;0,700;1,700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<style>
+:root{--chink:#1c1a14;--chhalo:#f2eedd;--panel:#f8fafb;--ink:#12303f;--mute:#506a77;--line:#cddbe2;--btn:#12303f;--btnink:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--panel:#0a1b27;--ink:#e3eef3;--mute:#8fa8b4;--line:#1c3646;--btn:#e3eef3;--btnink:#0a1b27}}
+:root[data-theme="dark"]{--panel:#0a1b27;--ink:#e3eef3;--mute:#8fa8b4;--line:#1c3646;--btn:#e3eef3;--btnink:#0a1b27}
+html,body{height:100%}body{margin:0;background:var(--panel);color:var(--ink);font:400 14px/1.45 "Public Sans",system-ui,sans-serif}
+#app{display:grid;grid-template-columns:1fr 340px;height:100%}
+#stage{position:relative;min-width:0;min-height:0;overflow:hidden}#map{position:absolute;inset:0;background:#e6eee9}
+#stage::after{content:"";position:absolute;inset:8px;border:2.5px solid var(--chink);pointer-events:none;z-index:3}
+#stage::before{content:"";position:absolute;inset:13px;border:.8px solid var(--chink);pointer-events:none;z-index:3}
+aside{display:flex;flex-direction:column;min-height:0;border-left:1px solid var(--line);background:var(--panel)}
+aside header{padding:18px 18px 12px;border-bottom:1px solid var(--line)}
+h1{font:700 21px/1.2 Spectral,Georgia,serif;margin:0 0 4px}aside header p{margin:0;color:var(--mute)}
+#legs{list-style:none;margin:0;padding:0;overflow:auto;flex:1}
+#legs li button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:14px 1fr;gap:0 10px;width:100%;padding:10px 18px;border-bottom:1px solid var(--line);cursor:pointer}
+#legs li button:hover,#legs li.now button{background:color-mix(in srgb,var(--ink) 8%,transparent)}
+#legs li button:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+#legs li.off{opacity:.38}.sw{grid-row:1/4;width:6px;height:100%;border-radius:3px;margin-left:4px}
+.d{color:var(--mute);font-size:12px}.r{font-weight:600}.e{color:var(--mute);font-size:12.5px}
+.note{padding:12px 18px;color:var(--mute);font-size:12px;border-top:1px solid var(--line)}.note p{margin:0 0 6px}
+#bar{position:absolute;left:24px;bottom:24px;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;max-width:calc(100% - 48px)}
+#bar button{all:unset;cursor:pointer;background:var(--btn);color:var(--btnink);font-weight:600;padding:6px 14px;border-radius:6px}
+#bar button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+#bar input{width:200px;max-width:34vw;accent-color:var(--ink)}#bar .t{min-width:150px;font-size:13px}
+.ramp{display:flex;align-items:center;gap:6px;color:var(--mute);font-size:12px}.ramp i{display:block;width:70px;height:6px;border-radius:3px}
+#rose{position:absolute;right:26px;bottom:46px;width:100px;height:100px;z-index:4;pointer-events:none}
+#err{display:none;position:absolute;top:24px;left:50%;transform:translateX(-50%);z-index:6;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 14px;max-width:80%}
+.pm{--s:12px;width:var(--s);height:var(--s);border-radius:50%;background:var(--chhalo);border:2px solid var(--chink);box-sizing:border-box;cursor:pointer}
+.sd{width:10px;height:10px;cursor:pointer}.sd i{display:block;width:100%;height:100%;box-sizing:border-box;background:var(--chhalo);border:2px solid var(--chink);transform:rotate(45deg)}
+.stw{font-size:24px;line-height:24px;width:24px;text-align:center;cursor:pointer;color:var(--chink);text-shadow:0 0 3px var(--chhalo),0 0 3px var(--chhalo)}
+.lab{position:absolute;white-space:nowrap;pointer-events:none;font:italic 700 13px Spectral,Georgia,serif;color:var(--chink);text-shadow:0 0 3px var(--chhalo),0 0 3px var(--chhalo),0 0 4px var(--chhalo)}
+.t .lab{bottom:calc(var(--s) + 2px);left:50%;transform:translateX(-50%)}.b .lab{top:calc(var(--s) + 2px);left:50%;transform:translateX(-50%)}.l .lab{right:calc(var(--s) + 4px);top:calc(var(--s)/2 - 9px)}.r .lab{left:calc(var(--s) + 4px);top:calc(var(--s)/2 - 9px)}
+.stw .lab{font-size:13px;line-height:1.2;top:26px;left:50%;transform:translateX(-50%)}
+.maplibregl-popup-content{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px 14px;line-height:1.4;font:400 14px/1.4 "Public Sans",sans-serif}
+.maplibregl-popup-content b{font:700 15px Spectral,Georgia,serif}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip{border-top-color:var(--panel)}.maplibregl-popup-anchor-top .maplibregl-popup-tip{border-bottom-color:var(--panel)}
+.maplibregl-popup-anchor-left .maplibregl-popup-tip{border-right-color:var(--panel)}.maplibregl-popup-anchor-right .maplibregl-popup-tip{border-left-color:var(--panel)}
+.maplibregl-ctrl-attrib{font-size:10px}
+#views{position:absolute;top:12px;right:12px;z-index:5;display:flex;gap:6px}
+#views button{all:unset;cursor:pointer;background:var(--btn);color:var(--btnink);font-weight:600;padding:6px 12px;border-radius:6px}
+#views button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+#bar #legsBtn{display:none}
+@media (pointer:coarse){.pm{--s:20px}.sd{width:16px;height:16px}}
+@media (max-width:760px){
+ #app{display:block}#stage{position:fixed;inset:0}.ramp,#rose{display:none}
+ #views{top:calc(12px + env(safe-area-inset-top,0px))}#views button{min-height:44px;box-sizing:border-box;display:flex;align-items:center}
+ .maplibregl-ctrl-top-left{margin-top:env(safe-area-inset-top,0px)}.maplibregl-ctrl-group button{width:44px;height:44px}.maplibregl-ctrl-bottom-right{margin-bottom:112px}
+ #bar{left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));max-width:none;flex-wrap:wrap;gap:8px 10px;padding:10px 12px}
+ #bar .t{order:-1;flex:1 0 100%;min-width:0;font-size:13px}#bar input{flex:1;width:auto;max-width:none;min-width:80px}
+ #bar button{min-height:44px;box-sizing:border-box}#bar #legsBtn{display:block}
+ aside{display:none;position:fixed;left:8px;right:8px;bottom:calc(128px + env(safe-area-inset-bottom,0px));max-height:min(58dvh,520px);overflow:auto;border:1px solid var(--line);border-radius:12px;z-index:6;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+ body.sheet aside{display:block}aside header{position:sticky;top:0;background:var(--panel);z-index:1}
+ #legs{overflow:visible}#legs li button{min-height:48px}.lab{font-size:12px}}
+</style></head><body>
+<div id="app"><div id="stage"><div id="map"></div>
+<svg id="rose" viewBox="-50 -50 100 100" fill="none" stroke="#a3225f" stroke-width="1" aria-hidden="true"><circle r="44"/><circle r="34" stroke-dasharray="2 2"/><polygon points="0,-34 4,-4 34,0 4,4 0,34 -4,4 -34,0 -4,-4"/><polygon transform="rotate(45)" points="0,-22 3,-3 22,0 3,3 0,22 -3,3 -22,0 -3,-3"/><polygon points="0,-34 4,-4 -4,-4" fill="#a3225f"/><path d="M0-44V-50M0 44V50M-44 0H-50M44 0H50"/></svg>
+<div id="err"></div>
+<div id="bar"><button id="play" type="button">Play</button><input id="rng" type="range" min="0" value="0" aria-label="Legs shown"><span class="t" id="tl"></span><span class="ramp"><span id="r0"></span><i id="rp"></i><span id="r1"></span></span><button id="legsBtn" type="button" aria-expanded="false">Legs</button></div><div id="views"><button id="vRoute" type="button">Route</button><button id="vWorld" type="button">World</button></div></div>
+<aside><header><h1>David Middleton’s voyage</h1><p id="sub"></p></header><ol id="legs"></ol><div class="note" id="notes"></div></aside></div>
+<script>
+const D={"nodes": [{"s": 1, "x": -122.71708, "y": 45.632864, "name": "Portland, OR", "date": "1943-10-25", "ev": "USS Alioth (AK-109) commissioned", "join": false, "sea": false}, {"s": 2, "x": -122.71708, "y": 45.632864, "name": "Portland, OR", "date": "1943-11-02", "ev": "Departed", "join": false, "sea": false}, {"s": 3, "x": -122.381024, "y": 37.767804, "name": "San Francisco, CA", "date": "1943-11-05", "ev": "Anchored", "join": false, "sea": false}, {"s": 4, "x": -122.381024, "y": 37.767804, "name": "San Francisco, CA", "date": "1943-11-21", "ev": "Departed", "join": false, "sea": false}, {"s": 5, "x": -157.96978, "y": 21.343818, "name": "Pearl Harbor, HI", "date": "1943-12-05", "ev": "Anchored", "join": false, "sea": false}, {"s": 6, "x": -173.84783794060186, "y": 0.3531662420383188, "name": "Equator", "date": "1943-12-21", "ev": "Crossed the Equator", "join": false, "sea": true}, {"s": 7, "x": 179.108129, "y": -8.528682, "name": "Funafuti, Tuvalu", "date": "1943-12-25", "ev": "Anchored", "join": false, "sea": false}, {"s": 8, "x": 179.108129, "y": -8.528682, "name": "Funafuti, Tuvalu", "date": "1944-02-03", "ev": "Departed. David Middleton joins the ship here", "join": true, "sea": false}, {"s": 9, "x": 172.994593, "y": 3.381696, "name": "Makin, Kiribati", "date": "1944-02-07", "ev": "Anchored", "join": false, "sea": false}, {"s": 10, "x": 172.994593, "y": 3.381696, "name": "Makin, Kiribati", "date": "1944-03-04", "ev": "Departed", "join": false, "sea": false}, {"s": 11, "x": 172.99625, "y": 1.45025, "name": "Tarawa, Kiribati", "date": "1944-03-04", "ev": "Anchored", "join": false, "sea": false}, {"s": 12, "x": 172.99625, "y": 1.45025, "name": "Tarawa, Kiribati", "date": "1944-03-06", "ev": "Departed", "join": false, "sea": false}, {"s": 13, "x": 167.733448, "y": 8.726719, "name": "Kwajalein, Marshall Islands", "date": "1944-03-12", "ev": "Anchored", "join": false, "sea": false}, {"s": 14, "x": 167.733448, "y": 8.726719, "name": "Kwajalein, Marshall Islands", "date": "1944-06-13", "ev": "Departed", "join": false, "sea": false}, {"s": 15, "x": 162.239913, "y": 11.5052, "name": "Enewetak, Marshall Islands", "date": "1944-06-15", "ev": "Anchored", "join": false, "sea": false}, {"s": 16, "x": 162.239913, "y": 11.5052, "name": "Enewetak, Marshall Islands", "date": "1944-10-12", "ev": "Departed", "join": false, "sea": false}, {"s": 17, "x": 134.618966, "y": 7.937882, "name": "Kossol Passage northern Palau", "date": "1944-10-19", "ev": "Anchored", "join": false, "sea": false}, {"s": 18, "x": 134.247363, "y": 7.008841, "name": "Peleliu", "date": "1944-11-03", "ev": "Arrived", "join": false, "sea": false}, {"s": 19, "x": 134.247363, "y": 7.008841, "name": "Peleliu", "date": "1944-11-14", "ev": "Departed", "join": false, "sea": false}, {"s": 20, "x": 134.669784, "y": 7.956917, "name": "Kossol", "date": "1944-11-15", "ev": "Arrived", "join": false, "sea": false}, {"s": 21, "x": 134.669784, "y": 7.956917, "name": "Kossol", "date": "1944-11-15", "ev": "Departed", "join": false, "sea": false}, {"s": 22, "x": 153.55938485519917, "y": 10.389328953684343, "name": "", "date": "1944-11-20", "ev": "Attacked by 3 Japanese planes, dropped 3 bombs. (Ineffective due to anti-aircraft fire. Stood General Quarters for 34 hours steady)", "join": false, "sea": true}, {"s": 23, "x": 162.239913, "y": 11.5052, "name": "Enewetak, Marshall Islands", "date": "1944-11-23", "ev": "Arrived", "join": false, "sea": false}, {"s": 24, "x": 162.239913, "y": 11.5052, "name": "Enewetak, Marshall Islands", "date": "1944-11-28", "ev": "Departed", "join": false, "sea": false}, {"s": 25, "x": -157.96978, "y": 21.343818, "name": "Pearl Harbor, HI", "date": "1944-12-10", "ev": "Arrived", "join": false, "sea": false}, {"s": 26, "x": -157.96978, "y": 21.343818, "name": "Pearl Harbor, HI", "date": "1944-12-13", "ev": "Departed", "join": false, "sea": false}, {"s": 27, "x": -122.305755, "y": 37.779222, "name": "Alameda, CA", "date": "1944-12-22", "ev": "Arrived", "join": false, "sea": false}, {"s": 28, "x": -122.305755, "y": 37.779222, "name": "NSD Oakland. (Naval Supply Depot)", "date": "1945-03-10", "ev": "Departed", "join": false, "sea": false}, {"s": 29, "x": -157.96978, "y": 21.343818, "name": "Pearl Harbor, HI", "date": "1945-03-18", "ev": "Arrived", "join": false, "sea": false}, {"s": 30, "x": -157.96978, "y": 21.343818, "name": "Pearl Harbor, HI", "date": "1945-03-21", "ev": "Departed", "join": false, "sea": false}, {"s": 31, "x": 162.0025162932234, "y": 14.29047192438706, "name": "", "date": "1945-03-31", "ev": "Escort Coos Bay collided with tug en route to Ulithi, Micronesia. Turned to go back to Enewetak for new escort", "join": false, "sea": true}, {"s": 32, "x": 162.02065801358594, "y": 13.956816178986827, "name": "", "date": "1945-03-31", "ev": "Submarine 21 miles away. Another one 70 miles away.", "join": false, "sea": true}, {"s": 33, "x": 162.239913, "y": 11.5052, "name": "Enewetak, Marshall Islands", "date": "1945-04-02", "ev": "Arrived", "join": false, "sea": false}, {"s": 34, "x": 162.239913, "y": 11.5052, "name": "Enewetak, Marshall Islands", "date": "1945-04-03", "ev": "Departed", "join": false, "sea": false}, {"s": 35, "x": 139.603053, "y": 9.961135, "name": "Ulithi, Micronesia", "date": "1945-04-08", "ev": "Arrived", "join": false, "sea": false}, {"s": 36, "x": -122.381024, "y": 37.767804, "name": "San Francisco, CA", "date": "1945-08-11", "ev": "Wrote letter", "join": false, "sea": false}], "notes": ["Date corrected: the Enewetak, Marshall Islands departure (sequence 16) is logged 10/12/43, which falls before the previous stop. It is read as 10/12/44.", "Event rows with a placeholder 0,0 position in the attribute table use the position of the line geometry instead."]};
+const $=id=>document.getElementById(id);
+const merc=p=>Math.log(Math.tan(Math.PI/4+p*Math.PI/360))*180/Math.PI,inv=y=>(2*Math.atan(Math.exp(y*Math.PI/180))-Math.PI/2)*180/Math.PI;
+const nodes=D.nodes.map(n=>({...n,X:n.x<0?n.x+360:n.x,Y:merc(n.y)}));
+const fmt=i=>new Intl.DateTimeFormat('en-US',{dateStyle:'medium',timeZone:'UTC'}).format(new Date(i+'T00:00:00Z'));
+const days=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/864e5);
+const nm=n=>n.name||'At sea',short=n=>nm(n).split(',')[0].replace(' northern Palau','').replace(/\..*$/,''),gen=/^(Anchored|Arrived|Departed)$/;
+function nmi(a,b){const r=Math.PI/180,h=Math.sin((b.y-a.y)*r/2)**2+Math.cos(a.y*r)*Math.cos(b.y*r)*Math.sin((b.x-a.x)*r/2)**2;return Math.round(2*3440.065*Math.asin(Math.sqrt(h)))}
+const stops=['#17508f','#7b2d8e','#c0182e'],hx=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+function ramp(t){const s=t*2,i=Math.min(1,Math.floor(s)),f=s-i,a=hx(stops[i]),b=hx(stops[i+1]);return'rgb('+a.map((v,k)=>Math.round(v+(b[k]-v)*f)).join(',')+')'}
+let legs=[];for(let i=0;i<nodes.length-1;i++){const a=nodes[i],b=nodes[i+1];if(a.y!==b.y||a.x!==b.x)legs.push({a,b})}
+legs.sort((p,q)=>p.a.date<q.a.date?-1:p.a.date>q.a.date?1:p.a.s-q.a.s);const N=legs.length;
+const SEA='#e6eee9',LAND='#e7d8a4';
+const MOB=()=>innerWidth<=760,pad=()=>MOB()?{top:70,left:36,right:36,bottom:170}:{top:70,left:70,right:70,bottom:110},RMS=()=>matchMedia('(prefers-reduced-motion:reduce)').matches?0:1000;
+const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/positron',bounds:bnd(nodes),fitBoundsOptions:{padding:pad()},minZoom:-0.5,renderWorldCopies:true,attributionControl:{compact:true}});
+map.addControl(new maplibregl.NavigationControl({showCompass:false}),'top-left');
+function bnd(ps,pad){const xs=ps.map(p=>p.X),ys=ps.map(p=>p.y);return[[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]]}
+const DRAW_MS=1000; // Play draws the whole route in this many milliseconds
+const li=[],ol=$('legs');let step=N,ready=false,popup=null,prog=N,raf=null;
+// each leg is a quadratic Bezier arc bulging to the right of travel (west for Portland to San Francisco, which keeps it off the Oregon and California land)
+function arc(g){const a=[g.a.X,g.a.Y],b=[g.b.X,g.b.Y],dx=b[0]-a[0],dy=b[1]-a[1],r=/Portland/.test(nm(g.a)+nm(g.b))?.32:.12,c=[(a[0]+b[0])/2+2*r*dy,(a[1]+b[1])/2-2*r*dx],P=[],S=48;
+ for(let i=0;i<=S;i++){const t=i/S,u=1-t;P.push([u*u*a[0]+2*u*t*c[0]+t*t*b[0],u*u*a[1]+2*u*t*c[1]+t*t*b[1]])}
+ const cum=[0];for(let i=1;i<P.length;i++)cum.push(cum[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]));g.P=P;g.cum=cum}
+function cut(g,f){const T=g.cum[g.cum.length-1]*f,o=[];for(let i=0;i<g.P.length;i++){if(g.cum[i]<=T){o.push(g.P[i]);continue}const k=(T-g.cum[i-1])/(g.cum[i]-g.cum[i-1]);o.push([g.P[i-1][0]+(g.P[i][0]-g.P[i-1][0])*k,g.P[i-1][1]+(g.P[i][1]-g.P[i-1][1])*k]);break}return o.map(p=>[p[0],inv(p[1])])}
+const bnd2=g=>{const xs=g.P.map(p=>p[0]),ys=g.P.map(p=>inv(p[1]));return[[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]]};
+function showPop(h,ll){if(popup)popup.remove();popup=new maplibregl.Popup({closeButton:false,offset:14,maxWidth:'280px'}).setLngLat(ll).setHTML(h).addTo(map)}
+legs.forEach((g,i)=>{g.col=ramp(N>1?i/(N-1):0);arc(g);g.mid=cut(g,.5).pop();
+ g.pop=`<b>Leg ${i+1} of ${N}</b><br>${nm(g.a)} → ${nm(g.b)}<br>${fmt(g.a.date)} → ${fmt(g.b.date)} (${days(g.a.date,g.b.date)} days)<br>≈ ${nmi(g.a,g.b).toLocaleString()} nautical miles, straight line${g.b.ev&&!gen.test(g.b.ev)?'<br><i>'+g.b.ev+'</i>':''}`;
+ const e=[g.a,g.b].map(n=>n.ev).filter(x=>x&&!gen.test(x)).pop()||'',el=document.createElement('li');
+ el.innerHTML=`<button type="button"><span class="sw" style="background:${g.col}"></span><span class="d">${i+1}. ${fmt(g.a.date)}</span><span class="r">${short(g.a)} → ${short(g.b)}</span><span class="e">${e}</span></button>`;
+ el.firstChild.onclick=()=>{document.body.classList.remove('sheet');$('legsBtn').setAttribute('aria-expanded','false');setStep(Math.max(step,i+1));if(popup)popup.remove();map.fitBounds(bnd2(g),{padding:MOB()?{top:80,left:36,right:36,bottom:190}:{top:110,left:110,right:110,bottom:150},maxZoom:7,duration:matchMedia('(prefers-reduced-motion:reduce)').matches?0:800});map.once('moveend',()=>showPop(g.pop,g.mid))};
+ ol.appendChild(el);li.push(el)});
+function arrowImg(col){const c=document.createElement('canvas');c.width=c.height=48;const x=c.getContext('2d');x.beginPath();x.moveTo(40,24);x.lineTo(12,9);x.lineTo(19,24);x.lineTo(12,39);x.closePath();x.lineJoin='round';x.lineWidth=5;x.strokeStyle='#f2eedd';x.stroke();x.fillStyle=col;x.fill();return x.getImageData(0,0,48,48)}
+function setup(base){
+ const L=map.getStyle().layers,first=L.find(l=>l['source-layer']==='water'&&l.type==='fill');
+ L.forEach(l=>{if(l.type==='symbol'){map.removeLayer(l.id);return}const sl=l['source-layer']||'';
+  if(l.type==='background')map.setPaintProperty(l.id,'background-color',LAND);
+  else if(sl==='water'&&l.type==='fill'){map.setPaintProperty(l.id,'fill-color',SEA);map.setPaintProperty(l.id,'fill-opacity',1);map.setPaintProperty(l.id,'fill-outline-color',SEA)}
+  else map.setLayoutProperty(l.id,'visibility','none')});
+ if(first){
+  map.addSource('dem',{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],encoding:'terrarium',tileSize:256,maxzoom:12,attribution:'Terrain: Mapzen, AWS Open Data'});
+  map.addLayer({id:'hs',type:'hillshade',source:'dem',paint:{'hillshade-exaggeration':.45,'hillshade-shadow-color':'#7a6a45','hillshade-highlight-color':'#fbf5dc','hillshade-accent-color':'#a89868'}},first.id);
+  map.addLayer({id:'coast',type:'line',source:first.source,'source-layer':'water',paint:{'line-color':'#1c1a14','line-width':['interpolate',['linear'],['zoom'],2,.6,8,1.3],'line-opacity':['interpolate',['linear'],['zoom'],5.5,0,7,1]}})}
+ legs.forEach((g,i)=>map.addImage('arr'+i,arrowImg(g.col),{pixelRatio:2}));
+ map.addSource('legs',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+ map.addSource('legfull',{type:'geojson',data:{type:'FeatureCollection',features:legs.map((g,i)=>({type:'Feature',properties:{i,arr:'arr'+i},geometry:{type:'LineString',coordinates:cut(g,1)}}))}});
+ const lc={'line-cap':'round','line-join':'round'};
+ map.addLayer({id:'leg-halo',type:'line',source:'legs',layout:lc,paint:{'line-color':'#f2eedd','line-opacity':.9,'line-width':7}});
+ map.addLayer({id:'leg-line',type:'line',source:'legs',layout:lc,paint:{'line-color':['get','col'],'line-width':3.5}});
+ map.addLayer({id:'leg-now',type:'line',source:'legs',layout:lc,paint:{'line-color':['get','col'],'line-width':7}});
+ map.addLayer({id:'leg-hit',type:'line',source:'legs',paint:{'line-color':'#000','line-opacity':.01,'line-width':16}});
+ map.addLayer({id:'leg-arrow',type:'symbol',source:'legfull',layout:{'symbol-placement':'line-center','icon-image':['get','arr'],'icon-rotation-alignment':'map','icon-allow-overlap':true,'icon-ignore-placement':true}});
+ ['leg-hit','leg-arrow'].forEach(id=>{map.on('click',id,e=>showPop(legs[e.features[0].properties.i].pop,e.lngLat));map.on('mouseenter',id,()=>map.getCanvas().style.cursor='pointer');map.on('mouseleave',id,()=>map.getCanvas().style.cursor='')});
+ loadLand(!!first);ready=true;drawFrac(prog)}
+// Natural Earth 10m land (every island it contains) drawn over the tiles at world and regional zoom; fades out as the detailed OpenStreetMap tiles take over
+function loadLand(tiles){const get=u=>fetch(u).then(r=>{if(!r.ok)throw 0;return r.json()}),b='https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/';
+ get(b+'land-10m.json').catch(()=>get(b+'land-50m.json')).then(t=>{
+  map.addSource('ne',{type:'geojson',data:topojson.feature(t,t.objects.land),tolerance:.05});
+  const fade=tiles?['interpolate',['linear'],['zoom'],5.5,1,7,0]:1;
+  map.addLayer({id:'ne-land',type:'fill',source:'ne',paint:{'fill-color':LAND,'fill-opacity':fade}},'leg-halo');
+  map.addLayer({id:'ne-coast',type:'line',source:'ne',paint:{'line-color':'#1c1a14','line-width':['interpolate',['linear'],['zoom'],2,.6,6,1.2],'line-opacity':fade}},'leg-halo')}).catch(()=>{})}
+// f = number of legs drawn so far (fractional while a leg is being drawn)
+function drawFrac(f){if(!ready)return;const feats=[];legs.forEach((g,i)=>{const fr=Math.min(1,Math.max(0,f-i));if(fr>0)feats.push({type:'Feature',properties:{i,col:g.col},geometry:{type:'LineString',coordinates:cut(g,fr)}})});
+ map.getSource('legs').setData({type:'FeatureCollection',features:feats});map.setFilter('leg-arrow',['<=',['get','i'],f-.5]);map.setFilter('leg-now',['==',['get','i'],f>0&&f<N?Math.ceil(f)-1:-1])}
+let booted=false;function boot(){if(booted)return;booted=true;clearTimeout(fb);setup()}
+map.on('load',boot);
+const fb=setTimeout(()=>fallback(),12000);
+function fallback(){if(booted)return;booted=true;clearTimeout(fb);const e=$('err');e.style.display='block';e.textContent='Map tiles could not be loaded (internet access is needed). Showing Natural Earth world land instead.';
+ map.setStyle({version:8,sources:{},layers:[{id:'bg',type:'background',paint:{'background-color':SEA}}]});map.once('styledata',()=>setup())}
+map.on('error',e=>{if(!booted&&!e.sourceId&&!e.tile)fallback()});
+// ports, events, labels (DOM markers)
+const grp={};nodes.forEach(n=>{if(n.sea)return;const k=n.x+','+n.y;(grp[k]=grp[k]||[]).push(n)});
+const labeled=[];const dirs={'San Francisco':'l',Alameda:'r',Tarawa:'b',Peleliu:'b',Kwajalein:'b',Funafuti:'b','Pearl Harbor':'b'};
+function mark(el,n,html){el.addEventListener('click',ev=>{ev.stopPropagation();showPop(html,[n.X,n.y])});new maplibregl.Marker({element:el}).setLngLat([n.X,n.y]).addTo(map)}
+Object.values(grp).forEach(a=>{const f=a[0],s=short(f),join=a.some(n=>n.join),el=document.createElement('div');
+ const dup=labeled.some(p=>p[2]===s&&Math.abs(p[0]-f.X)<.5&&Math.abs(p[1]-f.y)<.5);labeled.push([f.X,f.y,s]);el.className=join?'stw':'pm '+(dirs[s]||'t');el.innerHTML=(join?'★':'')+(dup?'':`<span class="lab">${s}</span>`);
+ mark(el,f,`<b>${nm(f)}</b>`+a.map(n=>`<br>${fmt(n.date)} — ${n.ev}${n.name&&n.name!==f.name?' ('+n.name+')':''}`).join(''))});
+nodes.filter(n=>n.sea).forEach(n=>{const el=document.createElement('div');el.className='sd';el.innerHTML='<i></i>';mark(el,n,`<b>${n.name||'At sea'}</b><br>${fmt(n.date)} — ${n.ev}`)});
+// timeline
+const rng=$('rng'),tl=$('tl'),pb=$('play');rng.max=N;
+function setProgress(f){prog=f;const k=Math.ceil(f-1e-9);step=k;rng.value=k;legs.forEach((g,i)=>{li[i].classList.toggle('off',i>=k);li[i].classList.toggle('now',f<N&&i===k-1)});drawFrac(f);
+ tl.textContent=f<=0?'Voyage not started':f>=N?`All ${N} legs, in date order`:`Leg ${k} of ${N} · ${fmt(legs[k-1].a.date)}`}
+function stop(){if(raf)cancelAnimationFrame(raf);raf=null;pb.textContent='Play'}
+function setStep(k){stop();setProgress(k)}
+pb.onclick=()=>{if(raf)return stop();const from=prog>=N?0:prog,t0=performance.now(),dur=DRAW_MS*(N-from)/N;pb.textContent='Pause';
+ (function f(t){const u=Math.min(1,(t-t0)/dur);setProgress(from+(N-from)*u);if(u<1)raf=requestAnimationFrame(f);else{raf=null;pb.textContent='Play'}})(t0)};
+rng.oninput=()=>setStep(+rng.value);
+setProgress(N);
+$('sub').textContent=`USS Alioth (AK-109) · ${fmt(nodes[0].date)} to ${fmt(nodes[nodes.length-1].date)} · ${N} legs`;
+$('r0').textContent=fmt(legs[0].a.date).replace(/ \d+,/,'');$('r1').textContent=fmt(legs[N-1].a.date).replace(/ \d+,/,'');
+$('rp').style.background=`linear-gradient(90deg,${stops.join(',')})`;
+$('notes').innerHTML='<p>Port stays have no length, so they appear as port markers (click one for arrival and departure dates). Diamonds mark events at sea; the star marks where David Middleton joined the ship.</p><p>Basemap: OpenFreeMap vector tiles (OpenStreetMap data) restyled as a chart, Natural Earth 10m land for every island at wide zoom, and terrain shading from AWS terrain tiles. All text labels except your ports are removed.</p>'+D.notes.map(t=>`<p>${t}</p>`).join('');
+
+$('legsBtn').onclick=()=>{const o=document.body.classList.toggle('sheet');$('legsBtn').setAttribute('aria-expanded',o)};
+map.on('click',()=>document.body.classList.remove('sheet'));
+$('vRoute').onclick=()=>map.fitBounds(bnd(nodes),{padding:pad(),duration:RMS()});
+$('vWorld').onclick=()=>map.easeTo({center:[180,12],zoom:Math.max(-0.5,Math.log2(map.getContainer().clientWidth/512)),duration:RMS()});
+// hide port labels that would overlap; they come back as you zoom in
+function declutter(){const pl=[];[...document.querySelectorAll('.lab')].sort((a,b)=>(b.parentNode.classList.contains('stw')?1:0)-(a.parentNode.classList.contains('stw')?1:0)).forEach(l=>{l.style.visibility='visible';const r=l.getBoundingClientRect();
+ if(pl.some(q=>r.left<q.right+3&&r.right+3>q.left&&r.top<q.bottom&&r.bottom>q.top))l.style.visibility='hidden';else pl.push(r)})}
+map.on('idle',declutter);addEventListener('resize',declutter);
+</script></body></html>
